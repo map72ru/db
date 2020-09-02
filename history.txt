@@ -1,0 +1,10 @@
+    4  service mysql start
+    7  mysql -u root -p
+   15  nano .my.cnf
+   16  nano task1.sql
+   17  mysql -e task1.sql	
+   23  mysqldump example > example.sql
+   25  mysql -e 'create database sample;use sample;' < example.sql 
+   26  mysql -e 'show databases'
+   28  mysqldump --opt --where="1 limit 100" mysql help_keyword > keyword.sql
+   29  history > history.txt
