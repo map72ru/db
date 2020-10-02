@@ -26,27 +26,19 @@ CREATE INDEX messages_from_user_id_to_user_id_idx on messages(from_user_id, to_u
 -- - общее количество пользователей в группе
 -- - всего пользователей в системе
 -- - отношение в процентах (общее количество пользователей в группе / всего пользователей в системе) * 100
+
+
 select distinct c.name,
-	COUNT(*) OVER(PARTITION BY c.name) AS average,
+	count(cu.user_id) over (order by cu.user_id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) / (select count(*) from communities) avg_comm,
 	concat(FIRST_VALUE(u.first_name) OVER(PARTITION BY c.name ORDER BY p.birthday), ' ',
 	FIRST_VALUE(u.last_name) OVER(PARTITION BY c.name ORDER BY p.birthday)) as YANG,
 	concat(FIRST_VALUE(u.first_name) OVER(PARTITION BY c.name ORDER BY p.birthday DESC), ' ',
 	FIRST_VALUE(u.last_name) OVER(PARTITION BY c.name ORDER BY p.birthday DESC)) as OLDEST,
-	COUNT(c.name) OVER(PARTITION BY c.name) AS count,
-	count(u.id) OVER(PARTITION BY c.name, u.id)
-from communities c join communities_users cu on cu.community_id=c.id join profiles p on cu.user_id = p.user_id join users u on p.user_id = u.id
+	count(c.id) over (partition by c.id order by cu.user_id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) cnt_group,
+	count(cu.user_id) over (order by cu.user_id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) cnt_all,
+	(SELECT count(*) from users) as all_users,
+	100 * count(c.id) over (partition by c.id order by cu.user_id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) / (SELECT count(*) from users) AS PC
+from communities c join communities_users cu on cu.community_id=c.id 
+join profiles p on cu.user_id = p.user_id join users u on p.user_id = u.id
 order by c.name;
 
-
-select count(*) from users u;
-
-SELECT DISTINCT media_types.name,
-  AVG(media.size) OVER(PARTITION BY media.media_type_id) AS average,
-  MIN(media.size) OVER(PARTITION BY media.media_type_id) AS min,
-  MAX(media.size) OVER(PARTITION BY media.media_type_id) AS max,
-  SUM(media.size) OVER(PARTITION BY media.media_type_id) AS total_by_type,
-  SUM(media.size) OVER() AS total,
-  SUM(media.size) OVER(PARTITION BY media.media_type_id) / SUM(media.size) OVER() * 100 AS "%%"
-    FROM media
-      JOIN media_types
-        ON media.media_type_id = media_types.id;
